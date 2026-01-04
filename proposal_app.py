@@ -7,143 +7,239 @@ from sklearn.cluster import KMeans
 from scipy.spatial.distance import cdist
 import io
 
-# --- KONFIGURASI HALAMAN ---
+# --- 1. KONFIGURASI HALAMAN & TEMA ---
 st.set_page_config(
-    page_title="Sistem Optimisasi Distribusi Makan Bergizi",
-    page_icon="🚚",
-    layout="wide"
+    page_title="NutriRoute - Smart Logistics",
+    page_icon="🍱",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# --- KONFIGURASI VISUAL ---
-sns.set_theme(style="whitegrid")
-plt.rcParams['figure.figsize'] = (10, 8)
+# --- 2. CUSTOM CSS (UNTUK MEMPERCANTIK) ---
+st.markdown("""
+<style>
+    /* Import Font Keren */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
-# --- FUNGSI ALGORITMA ---
+    html, body, [class*="css"] {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Header Gradient */
+    .main-header {
+        background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+        padding: 20px;
+        border-radius: 15px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .main-header h1 {
+        color: white;
+        font-size: 2.2rem;
+        margin: 0;
+    }
+    .main-header p {
+        color: #e0e0e0;
+        margin: 5px 0 0 0;
+    }
+
+    /* Metric Cards Custom */
+    div.metric-container {
+        background-color: #FFFFFF;
+        border: 1px solid #E0E0E0;
+        border-radius: 10px;
+        padding: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+        text-align: center;
+    }
+    div.metric-container:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        border-color: #2a5298;
+    }
+    .metric-title {
+        color: #757575;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .metric-value {
+        color: #1e3c72;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 10px 0;
+    }
+    .metric-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    /* Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: #f0f2f6;
+        border-radius: 5px 5px 0 0;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #ffffff;
+        border-top: 3px solid #1e3c72;
+        color: #1e3c72;
+        font-weight: bold;
+    }
+
+    /* Tombol Download */
+    .stDownloadButton button {
+        background-color: #2ECC71 !important;
+        color: white !important;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(46, 204, 113, 0.3);
+    }
+    .stDownloadButton button:hover {
+        background-color: #27ae60 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 3. KONFIGURASI VISUAL SEABORN ---
+sns.set_theme(style="whitegrid", context="talk")
+plt.rcParams['figure.figsize'] = (12, 7)
+plt.rcParams['axes.edgecolor'] = '#333333'
+plt.rcParams['axes.linewidth'] = 1
+
+# --- 4. FUNGSI LOGIKA (BACKEND) ---
 
 def solve_routing_simple(kitchen_coord, school_coords):
-    """
-    Algoritma Greedy Nearest Neighbor untuk menentukan urutan kunjungan.
-    Dari Dapur -> Sekolah Terdekat -> Sekolah Terdekat berikutnya -> ...
-    """
+    """Greedy Nearest Neighbor Algorithm"""
     route_indices = []
     current_pos = kitchen_coord.reshape(1, -1)
-    
-    # Copy koordinat sekolah agar tidak merusak data asli
     remaining_schools = school_coords.copy()
-    original_indices = np.arange(len(school_coords)) # Melacak indeks asli
-    
-    # Masking untuk sekolah yang sudah dikunjungi
     visited_mask = np.zeros(len(school_coords), dtype=bool)
     
     for _ in range(len(school_coords)):
-        # Hitung jarak dari posisi sekarang ke semua sekolah
         dists = cdist(current_pos, remaining_schools, metric='euclidean')
-        
-        # Set jarak ke infinity untuk sekolah yang sudah dikunjungi
         dists[0, visited_mask] = np.inf
-        
-        # Cari sekolah terdekat yang belum dikunjungi
         nearest_idx = np.argmin(dists)
         
-        # Simpan rute
         route_indices.append(nearest_idx)
         visited_mask[nearest_idx] = True
-        
-        # Update posisi sekarang menjadi sekolah yang baru dikunjungi
         current_pos = remaining_schools[nearest_idx].reshape(1, -1)
         
     return route_indices
 
-# --- UI UTAMA ---
+# --- 5. UI UTAMA (FRONTEND) ---
 
-st.title("🚚 Sistem Penentuan Rute")
+# Header Section
 st.markdown("""
-**Input:** Data Excel Sekolah (Lat, Lon) | **Proses:** Clustering & VRP Routing | **Output:** Kebijakan Distribusi
-""")
+<div class="main-header">
+    <h1>🍱 NutriRoute: Sistem Distribusi Cerdas</h1>
+    <p>Optimalisasi Rute Program Makan Bergizi Gratis Berbasis Spasial & VRP</p>
+</div>
+""", unsafe_allow_html=True)
 
-# --- SIDEBAR ---
-st.sidebar.header("⚙️ Pengaturan Operasional")
-n_clusters = st.sidebar.slider("Jumlah Dapur / Klaster", 2, 20, 5)
-st.sidebar.info("Aplikasi akan menentukan lokasi Dapur secara otomatis di titik tengah (Centroid) klaster sekolah.")
+# Sidebar
+with st.sidebar:
+    st.image("https://img.icons8.com/color/96/delivery--v1.png", width=80)
+    st.markdown("### ⚙️ Panel Kontrol")
+    st.markdown("---")
+    n_clusters = st.slider("Jumlah Dapur/Rayon", 2, 20, 5, help="Sistem akan membagi wilayah menjadi sekian klaster.")
+    st.info("""
+    **Cara Kerja:**
+    1. Upload Excel Data Sekolah.
+    2. Sistem menghitung titik tengah (Dapur).
+    3. Sistem membuat rute terpendek.
+    4. Download Kebijakan.
+    """)
+    st.markdown("---")
+    st.caption("© 2025 NutriRoute Research Team")
 
-# --- TABS ---
-tab_input, tab_process, tab_output = st.tabs([
-    "📂 1. Input Data", 
-    "🗺️ 2. Peta Rute & Klaster", 
-    "📋 3. Output Kebijakan (Excel)"
-])
-
-# --- GLOBAL VAR ---
+# Global State
 if 'data_uploaded' not in st.session_state:
     st.session_state.data_uploaded = None
 
+# Tabs
+tab1, tab2, tab3 = st.tabs(["📂 1. Input Data", "🗺️ 2. Analisis Peta", "📋 3. Output Kebijakan"])
+
 # --- TAB 1: INPUT ---
-with tab_input:
-    st.subheader("Unggah Data Sekolah")
+with tab1:
+    col_left, col_right = st.columns([1, 2], gap="large")
     
-    # Template Download
-    dummy_data = pd.DataFrame({
-        'Nama_Sekolah': ['SDN 1 Bandung', 'SDN 2 Bandung', 'SMP 1 Bandung', 'SDN 3 Bandung'],
-        'Latitude': [-6.9175, -6.9200, -6.9150, -6.9180],
-        'Longitude': [107.6191, 107.6200, 107.6180, 107.6210],
-        'Jumlah_Siswa': [200, 150, 300, 100]
-    })
-    
-    col_dl, col_up = st.columns([1, 2])
-    with col_dl:
-        st.write("Belum punya format?")
+    with col_left:
+        st.markdown("### 📥 Unggah Data")
+        st.write("Silakan unduh template di bawah, isi data sekolah, lalu unggah kembali.")
+        
+        # Template
+        dummy_data = pd.DataFrame({
+            'Nama_Sekolah': ['SDN 1 Merdeka', 'SDN 2 Juara', 'SMP 1 Bangsa', 'SDN 3 Cerdas'],
+            'Latitude': [-6.9175, -6.9200, -6.9150, -6.9180],
+            'Longitude': [107.6191, 107.6200, 107.6180, 107.6210],
+            'Jumlah_Siswa': [200, 150, 300, 100]
+        })
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            dummy_data.to_excel(writer, index=False, sheet_name='Sheet1')
+            dummy_data.to_excel(writer, index=False, sheet_name='Data')
+            
+        st.download_button("⬇️ Download Template Excel", data=buffer.getvalue(), file_name="template_nutriroute.xlsx")
         
-        st.download_button(
-            label="⬇️ Download Template Excel",
-            data=buffer.getvalue(),
-            file_name="template_sekolah.xlsx",
-            mime="application/vnd.ms-excel"
-        )
+        st.markdown("---")
+        uploaded_file = st.file_uploader("", type=['xlsx'], help="Pastikan format sesuai template")
 
-    uploaded_file = st.file_uploader("Upload file Excel Anda", type=['xlsx'])
-    
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file)
-            # Validasi kolom dasar
-            required_cols = ['Latitude', 'Longitude', 'Nama_Sekolah']
-            if not all(col in df.columns for col in required_cols):
-                st.error(f"File Excel wajib memiliki kolom: {required_cols}")
-            else:
+    with col_right:
+        if uploaded_file is not None:
+            try:
+                df = pd.read_excel(uploaded_file)
                 st.session_state.data_uploaded = df
-                st.success(f"Berhasil memuat {len(df)} data sekolah.")
-                st.dataframe(df.head())
-        except Exception as e:
-            st.error(f"Gagal membaca file: {e}")
+                st.success(f"✅ Data berhasil dimuat: {len(df)} Sekolah")
+                
+                # Preview Data dengan Style
+                st.dataframe(
+                    df.head(), 
+                    use_container_width=True,
+                    column_config={
+                        "Latitude": st.column_config.NumberColumn(format="%.5f"),
+                        "Longitude": st.column_config.NumberColumn(format="%.5f"),
+                    }
+                )
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
+        else:
+            st.info("👈 Menunggu file Excel diunggah...")
+            # Placeholder Image
+            st.markdown("""
+            <div style="text-align: center; color: #ccc; padding: 50px; border: 2px dashed #ccc; border-radius: 10px;">
+                <h3>Area Preview Data</h3>
+                <p>Data akan muncul di sini setelah diunggah</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-# --- PROSES UTAMA (JIKA DATA ADA) ---
+# --- LOGIKA PROSES ---
 if st.session_state.data_uploaded is not None:
     df = st.session_state.data_uploaded.copy()
     
-    # 1. CLUSTERING (Menentukan Dapur)
+    # Clustering
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     df['Cluster_ID'] = kmeans.fit_predict(df[['Latitude', 'Longitude']])
-    
-    # Ambil koordinat dapur (Centroids)
     kitchen_centers = kmeans.cluster_centers_
     
-    # 2. ROUTING (Menentukan Urutan)
-    # Kita akan membuat DataFrame baru untuk hasil rute
+    # Routing
     route_results = []
-    
     for c_id in range(n_clusters):
-        # Filter sekolah di klaster ini
         cluster_schools = df[df['Cluster_ID'] == c_id].copy().reset_index(drop=True)
         kitchen_loc = kitchen_centers[c_id]
         
-        # Hitung rute (urutan indeks)
-        school_coords = cluster_schools[['Latitude', 'Longitude']].values
-        route_order = solve_routing_simple(kitchen_loc, school_coords)
+        route_order = solve_routing_simple(kitchen_loc, cluster_schools[['Latitude', 'Longitude']].values)
         
-        # Masukkan ke hasil dengan urutan
         for seq_num, idx in enumerate(route_order):
             school = cluster_schools.iloc[idx]
             route_results.append({
@@ -154,103 +250,112 @@ if st.session_state.data_uploaded is not None:
                 'Nama_Sekolah': school['Nama_Sekolah'],
                 'Lat_Sekolah': school['Latitude'],
                 'Lon_Sekolah': school['Longitude'],
-                'Jumlah_Siswa': school.get('Jumlah_Siswa', 0) # Handle jika kolom tidak ada
+                'Jumlah_Siswa': school.get('Jumlah_Siswa', 0)
             })
-            
     df_routes = pd.DataFrame(route_results)
 
-    # --- TAB 2: VISUALISASI PETA ---
-    with tab_process:
-        st.subheader("Peta Rute Distribusi & Lokasi Dapur")
+    # --- TAB 2: PETA ---
+    with tab2:
+        st.markdown("### 🗺️ Visualisasi Rute & Klaster")
         
-        col1, col2 = st.columns([3, 1])
+        col_map, col_legend = st.columns([3, 1])
         
-        with col1:
-            fig, ax = plt.subplots(figsize=(12, 8))
-            
-            # Warna untuk setiap klaster
-            colors = plt.cm.tab10(np.linspace(0, 1, n_clusters))
-            
-            for c_id in range(n_clusters):
-                # Data Rute per Dapur
-                dapur_data = df_routes[df_routes['ID_Dapur'] == c_id + 1].sort_values('Urutan_Pengiriman')
+        with col_map:
+            with st.spinner("Membuat Peta Interaktif..."):
+                fig, ax = plt.subplots(figsize=(14, 9))
+                # Custom Palette
+                palette = sns.color_palette("bright", n_clusters)
                 
-                kitchen_lat = dapur_data.iloc[0]['Lokasi_Dapur_Lat']
-                kitchen_lon = dapur_data.iloc[0]['Lokasi_Dapur_Lon']
-                color = colors[c_id]
+                # Plot Background Grid lebih halus
+                ax.grid(True, linestyle='--', alpha=0.3)
                 
-                # 1. Plot Titik Dapur (Bintang Besar)
-                ax.scatter(kitchen_lon, kitchen_lat, s=300, marker='*', c=[color], edgecolors='black', zorder=10, label=f'Dapur {c_id+1}')
-                ax.text(kitchen_lon, kitchen_lat, f" Dapur {c_id+1}", fontsize=9, fontweight='bold')
-                
-                # 2. Plot Titik Sekolah
-                ax.scatter(dapur_data['Lon_Sekolah'], dapur_data['Lat_Sekolah'], s=50, c=[color], alpha=0.7)
-                
-                # 3. Plot Garis Rute (LineString)
-                # Dari Dapur ke Sekolah Pertama
-                ax.plot([kitchen_lon, dapur_data.iloc[0]['Lon_Sekolah']], 
-                        [kitchen_lat, dapur_data.iloc[0]['Lat_Sekolah']], 
-                        c=color, linestyle='--', alpha=0.5)
-                
-                # Antar Sekolah (Sesuai Urutan)
-                ax.plot(dapur_data['Lon_Sekolah'], dapur_data['Lat_Sekolah'], c=color, alpha=0.6, linewidth=1.5)
-                
-                # Kembali ke Dapur (Opsional, biasanya mobil balik)
-                ax.plot([dapur_data.iloc[-1]['Lon_Sekolah'], kitchen_lon], 
-                        [dapur_data.iloc[-1]['Lat_Sekolah'], kitchen_lat], 
-                        c=color, linestyle=':', alpha=0.3)
+                for c_id in range(n_clusters):
+                    dapur_data = df_routes[df_routes['ID_Dapur'] == c_id + 1].sort_values('Urutan_Pengiriman')
+                    k_lat, k_lon = dapur_data.iloc[0]['Lokasi_Dapur_Lat'], dapur_data.iloc[0]['Lokasi_Dapur_Lon']
+                    color = palette[c_id]
+                    
+                    # Rute Lines
+                    # Dapur -> Sekolah 1
+                    ax.plot([k_lon, dapur_data.iloc[0]['Lon_Sekolah']], 
+                            [k_lat, dapur_data.iloc[0]['Lat_Sekolah']], 
+                            c=color, linestyle='--', alpha=0.4)
+                    # Sekolah -> Sekolah
+                    ax.plot(dapur_data['Lon_Sekolah'], dapur_data['Lat_Sekolah'], c=color, linewidth=2, alpha=0.8, label=f'Rute Dapur {c_id+1}')
+                    
+                    # Titik Sekolah
+                    ax.scatter(dapur_data['Lon_Sekolah'], dapur_data['Lat_Sekolah'], s=80, c=[color], edgecolors='white', alpha=0.9)
+                    
+                    # Titik Dapur (Penting)
+                    ax.scatter(k_lon, k_lat, s=400, marker='*', c=[color], edgecolors='black', zorder=10)
+                    ax.text(k_lon, k_lat+0.0005, f"Dapur {c_id+1}", fontsize=10, fontweight='bold', ha='center',
+                            bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1))
 
-            ax.set_title("Visualisasi Rute VRP (Dapur -> Sekolah)", fontsize=15)
-            ax.set_xlabel("Longitude")
-            ax.set_ylabel("Latitude")
-            ax.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-            st.pyplot(fig)
-            
-        with col2:
-            st.info("Keterangan Peta:")
+                ax.set_xlabel("Longitude")
+                ax.set_ylabel("Latitude")
+                ax.set_title("Peta Operasional Distribusi", fontsize=16, pad=20)
+                sns.despine()
+                st.pyplot(fig)
+        
+        with col_legend:
             st.markdown("""
-            * **Bintang (⭐):** Lokasi Dapur Sementara (Pusat Klaster).
-            * **Titik Bulat:** Lokasi Sekolah.
-            * **Garis:** Rute perjalanan kendaraan.
-            """)
-            st.metric("Total Dapur", n_clusters)
-            st.metric("Total Sekolah", len(df))
-
-    # --- TAB 3: OUTPUT KEBIJAKAN ---
-    with tab_output:
-        st.subheader("📋 Kebijakan Operasional Distribusi")
-        
-        st.write("Tabel ini menunjukkan Dapur mana yang bertanggung jawab atas sekolah mana, serta urutan pengirimannya untuk efisiensi waktu.")
-        
-        # Tampilkan Dataframe Rapi
-        display_cols = ['ID_Dapur', 'Urutan_Pengiriman', 'Nama_Sekolah', 'Jumlah_Siswa', 'Lat_Sekolah', 'Lon_Sekolah']
-        st.dataframe(df_routes[display_cols], height=400)
-        
-        # Download Button
-        buffer_out = io.BytesIO()
-        with pd.ExcelWriter(buffer_out, engine='xlsxwriter') as writer:
-            df_routes.to_excel(writer, index=False, sheet_name='Rute_Kebijakan')
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 5px solid #1e3c72;">
+                <h4>Legenda Peta</h4>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li>⭐ <b>Bintang Besar:</b> Lokasi Dapur Sementara (Pusat Rayon)</li>
+                    <li>● <b>Lingkaran:</b> Sekolah Tujuan</li>
+                    <li>━ <b>Garis Warna:</b> Rute Kendaraan</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
             
-        st.download_button(
-            label="⬇️ Download Kebijakan (Excel)",
-            data=buffer_out.getvalue(),
-            file_name="Kebijakan_Rute_VRP.xlsx",
-            mime="application/vnd.ms-excel"
-        )
-        
-        # Statistik per Dapur
-        st.markdown("### Beban Kerja per Dapur")
-        beban_kerja = df_routes.groupby('ID_Dapur')['Jumlah_Siswa'].sum().reset_index()
-        beban_kerja['Jumlah_Sekolah'] = df_routes.groupby('ID_Dapur')['Nama_Sekolah'].count().values
-        
-        col_metrics = st.columns(n_clusters)
-        for idx, row in beban_kerja.iterrows():
-            with col_metrics[idx % 3]: # Agar tidak terlalu lebar jika cluster banyak
-                st.metric(f"Dapur {row['ID_Dapur']}", f"{row['Jumlah_Siswa']:,} Siswa", f"{row['Jumlah_Sekolah']} Sekolah")
+            # Mini Summary
+            total_siswa = df_routes['Jumlah_Siswa'].sum()
+            st.metric("Total Siswa Dilayani", f"{total_siswa:,}")
+            st.metric("Rata-rata Sekolah/Dapur", f"{len(df)/n_clusters:.1f}")
 
-else:
-    # Pesan jika belum ada data
-    with tab_process:
-        st.info("Silakan unggah data Excel di Tab 1 terlebih dahulu.")
-    with tab_output:
-        st.info("Silakan unggah data Excel di Tab 1 terlebih dahulu.")
+    # --- TAB 3: OUTPUT ---
+    with tab3:
+        st.markdown("### 📋 Dasbor Kebijakan Distribusi")
+        
+        # 1. Download Section
+        col_dl_desc, col_dl_btn = st.columns([3, 1])
+        with col_dl_desc:
+            st.write("Unduh file Excel ini untuk diberikan kepada manajer operasional dan supir logistik.")
+        with col_dl_btn:
+            buffer_out = io.BytesIO()
+            with pd.ExcelWriter(buffer_out, engine='xlsxwriter') as writer:
+                df_routes.to_excel(writer, index=False, sheet_name='Kebijakan')
+            st.download_button("⬇️ Download Excel Kebijakan", data=buffer_out.getvalue(), file_name="Kebijakan_Distribusi_Final.xlsx")
+        
+        st.markdown("---")
+        
+        # 2. Tabel Data Rinci
+        with st.expander("🔍 Lihat Detail Tabel Jadwal Pengiriman", expanded=True):
+            st.dataframe(
+                df_routes[['ID_Dapur', 'Urutan_Pengiriman', 'Nama_Sekolah', 'Jumlah_Siswa']],
+                use_container_width=True,
+                hide_index=True
+            )
+
+        # 3. KARTU BEBAN KERJA (Custom HTML/CSS)
+        st.markdown("#### 📊 Beban Kerja per Dapur (Workload)")
+        
+        beban_kerja = df_routes.groupby('ID_Dapur').agg({'Jumlah_Siswa':'sum', 'Nama_Sekolah':'count'}).reset_index()
+        
+        # Grid Layout untuk Kartu
+        cols = st.columns(4) # 4 Kartu per baris
+        
+        for index, row in beban_kerja.iterrows():
+            with cols[index % 4]:
+                st.markdown(f"""
+                <div class="metric-container">
+                    <div class="metric-icon">🍳</div>
+                    <div class="metric-title">Dapur {row['ID_Dapur']}</div>
+                    <div class="metric-value">{row['Jumlah_Siswa']:,}</div>
+                    <div style="font-size: 0.8rem; color: #888;">
+                        Melayani <b>{row['Nama_Sekolah']}</b> Sekolah
+                    </div>
+                </div>
+                <br>
+                """, unsafe_allow_html=True)
