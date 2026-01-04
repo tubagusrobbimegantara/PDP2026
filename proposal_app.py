@@ -182,8 +182,8 @@ with tab1:
         # Template
         dummy_data = pd.DataFrame({
             'Nama_Sekolah': ['SDN 1 Merdeka', 'SDN 2 Juara', 'SMP 1 Bangsa', 'SDN 3 Cerdas'],
-            'Latitude': [-6.9175, -6.9200, -6.9150, -6.9180],
-            'Longitude': [107.6191, 107.6200, 107.6180, 107.6210],
+            'latitude': [-6.9175, -6.9200, -6.9150, -6.9180],
+            'longitude': [107.6191, 107.6200, 107.6180, 107.6210],
             'Jumlah_Siswa': [200, 150, 300, 100]
         })
         buffer = io.BytesIO()
@@ -207,8 +207,8 @@ with tab1:
                     df.head(), 
                     use_container_width=True,
                     column_config={
-                        "Latitude": st.column_config.NumberColumn(format="%.5f"),
-                        "Longitude": st.column_config.NumberColumn(format="%.5f"),
+                        "latitude": st.column_config.NumberColumn(format="%.5f"),
+                        "longitude": st.column_config.NumberColumn(format="%.5f"),
                     }
                 )
             except Exception as e:
@@ -229,7 +229,7 @@ if st.session_state.data_uploaded is not None:
     
     # Clustering
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-    df['Cluster_ID'] = kmeans.fit_predict(df[['Latitude', 'Longitude']])
+    df['Cluster_ID'] = kmeans.fit_predict(df[['latitude', 'longitude']])
     kitchen_centers = kmeans.cluster_centers_
     
     # Routing
@@ -238,7 +238,7 @@ if st.session_state.data_uploaded is not None:
         cluster_schools = df[df['Cluster_ID'] == c_id].copy().reset_index(drop=True)
         kitchen_loc = kitchen_centers[c_id]
         
-        route_order = solve_routing_simple(kitchen_loc, cluster_schools[['Latitude', 'Longitude']].values)
+        route_order = solve_routing_simple(kitchen_loc, cluster_schools[['latitude', 'longitude']].values)
         
         for seq_num, idx in enumerate(route_order):
             school = cluster_schools.iloc[idx]
@@ -248,8 +248,8 @@ if st.session_state.data_uploaded is not None:
                 'Lokasi_Dapur_Lon': kitchen_loc[1],
                 'Urutan_Pengiriman': seq_num + 1,
                 'Nama_Sekolah': school['Nama_Sekolah'],
-                'Lat_Sekolah': school['Latitude'],
-                'Lon_Sekolah': school['Longitude'],
+                'Lat_Sekolah': school['latitude'],
+                'Lon_Sekolah': school['longitude'],
                 'Jumlah_Siswa': school.get('Jumlah_Siswa', 0)
             })
     df_routes = pd.DataFrame(route_results)
@@ -290,8 +290,8 @@ if st.session_state.data_uploaded is not None:
                     ax.text(k_lon, k_lat+0.0005, f"Dapur {c_id+1}", fontsize=10, fontweight='bold', ha='center',
                             bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1))
 
-                ax.set_xlabel("Longitude")
-                ax.set_ylabel("Latitude")
+                ax.set_xlabel("longitude")
+                ax.set_ylabel("latitude")
                 ax.set_title("Peta Operasional Distribusi", fontsize=16, pad=20)
                 sns.despine()
                 st.pyplot(fig)
