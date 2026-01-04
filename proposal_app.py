@@ -181,10 +181,10 @@ with tab1:
         
         # Template
         dummy_data = pd.DataFrame({
-            'Nama_Sekolah': ['SDN 1 Merdeka', 'SDN 2 Juara', 'SMP 1 Bangsa', 'SDN 3 Cerdas'],
+            'nama_sekolah': ['SDN 1 Merdeka', 'SDN 2 Juara', 'SMP 1 Bangsa', 'SDN 3 Cerdas'],
             'latitude': [-6.9175, -6.9200, -6.9150, -6.9180],
             'longitude': [107.6191, 107.6200, 107.6180, 107.6210],
-            'Jumlah_Siswa': [200, 150, 300, 100]
+            'jumlah_siswa': [200, 150, 300, 100]
         })
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
@@ -247,10 +247,10 @@ if st.session_state.data_uploaded is not None:
                 'Lokasi_Dapur_Lat': kitchen_loc[0],
                 'Lokasi_Dapur_Lon': kitchen_loc[1],
                 'Urutan_Pengiriman': seq_num + 1,
-                'Nama_Sekolah': school['Nama_Sekolah'],
+                'nama_sekolah': school['nama_sekolah'],
                 'Lat_Sekolah': school['latitude'],
                 'Lon_Sekolah': school['longitude'],
-                'Jumlah_Siswa': school.get('Jumlah_Siswa', 0)
+                'jumlah_siswa': school.get('jumlah_siswa', 0)
             })
     df_routes = pd.DataFrame(route_results)
 
@@ -310,7 +310,7 @@ if st.session_state.data_uploaded is not None:
             st.markdown("<br>", unsafe_allow_html=True)
             
             # Mini Summary
-            total_siswa = df_routes['Jumlah_Siswa'].sum()
+            total_siswa = df_routes['jumlah_siswa'].sum()
             st.metric("Total Siswa Dilayani", f"{total_siswa:,}")
             st.metric("Rata-rata Sekolah/Dapur", f"{len(df)/n_clusters:.1f}")
 
@@ -333,7 +333,7 @@ if st.session_state.data_uploaded is not None:
         # 2. Tabel Data Rinci
         with st.expander("🔍 Lihat Detail Tabel Jadwal Pengiriman", expanded=True):
             st.dataframe(
-                df_routes[['ID_Dapur', 'Urutan_Pengiriman', 'Nama_Sekolah', 'Jumlah_Siswa']],
+                df_routes[['ID_Dapur', 'Urutan_Pengiriman', 'nama_sekolah', 'jumlah_siswa']],
                 use_container_width=True,
                 hide_index=True
             )
@@ -341,7 +341,7 @@ if st.session_state.data_uploaded is not None:
         # 3. KARTU BEBAN KERJA (Custom HTML/CSS)
         st.markdown("#### 📊 Beban Kerja per Dapur (Workload)")
         
-        beban_kerja = df_routes.groupby('ID_Dapur').agg({'Jumlah_Siswa':'sum', 'Nama_Sekolah':'count'}).reset_index()
+        beban_kerja = df_routes.groupby('ID_Dapur').agg({'jumlah_siswa':'sum', 'nama_sekolah':'count'}).reset_index()
         
         # Grid Layout untuk Kartu
         cols = st.columns(4) # 4 Kartu per baris
@@ -352,9 +352,9 @@ if st.session_state.data_uploaded is not None:
                 <div class="metric-container">
                     <div class="metric-icon">🍳</div>
                     <div class="metric-title">Dapur {row['ID_Dapur']}</div>
-                    <div class="metric-value">{row['Jumlah_Siswa']:,}</div>
+                    <div class="metric-value">{row['jumlah_siswa']:,}</div>
                     <div style="font-size: 0.8rem; color: #888;">
-                        Melayani <b>{row['Nama_Sekolah']}</b> Sekolah
+                        Melayani <b>{row['nama_sekolah']}</b> Sekolah
                     </div>
                 </div>
                 <br>
