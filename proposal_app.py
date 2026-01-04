@@ -9,7 +9,7 @@ import io
 
 # --- 1. KONFIGURASI HALAMAN & TEMA ---
 st.set_page_config(
-    page_title="NutriRoute - Smart Logistics",
+    page_title="MBG-Route - Smart Logistics",
     page_icon="🍱",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -143,7 +143,7 @@ def solve_routing_simple(kitchen_coord, school_coords):
 # Header Section
 st.markdown("""
 <div class="main-header">
-    <h1>🍱 NutriRoute: Sistem Distribusi Cerdas</h1>
+    <h1>🍱 MBG-Route: Sistem Distribusi Cerdas</h1>
     <p>Optimalisasi Rute Program Makan Bergizi Gratis Berbasis Spasial & VRP</p>
 </div>
 """, unsafe_allow_html=True)
@@ -162,7 +162,7 @@ with st.sidebar:
     4. Download Kebijakan.
     """)
     st.markdown("---")
-    st.caption("© 2025 NutriRoute Research Team")
+    st.caption("© 2025 MBG-Route Research Team")
 
 # Global State
 if 'data_uploaded' not in st.session_state:
@@ -190,7 +190,7 @@ with tab1:
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
             dummy_data.to_excel(writer, index=False, sheet_name='Data')
             
-        st.download_button("⬇️ Download Template Excel", data=buffer.getvalue(), file_name="template_nutriroute.xlsx")
+        st.download_button("⬇️ Download Template Excel", data=buffer.getvalue(), file_name="template_MBG-Route.xlsx")
         
         st.markdown("---")
         uploaded_file = st.file_uploader("", type=['xlsx'], help="Pastikan format sesuai template")
