@@ -9,7 +9,7 @@ import io
 
 # --- KONFIGURASI HALAMAN ---
 st.set_page_config(
-    page_title="Sistem Optimasi Distribusi Makan Bergizi",
+    page_title="Sistem Optimisasi Distribusi Makan Bergizi",
     page_icon="🚚",
     layout="wide"
 )
@@ -56,7 +56,7 @@ def solve_routing_simple(kitchen_coord, school_coords):
 
 # --- UI UTAMA ---
 
-st.title("🚚 Sistem Penentuan Rute & Dapur Sementara")
+st.title("🚚 Sistem Penentuan Rute")
 st.markdown("""
 **Input:** Data Excel Sekolah (Lat, Lon) | **Proses:** Clustering & VRP Routing | **Output:** Kebijakan Distribusi
 """)
